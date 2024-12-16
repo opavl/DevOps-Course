@@ -1,0 +1,35 @@
+---
+- name: Install NGINX and deploy index.html from local system
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+
+    - name: Install NGINX
+      apt:
+        name: nginx
+        state: present
+
+    - name: Copy index.html from local system to the remote server
+      copy:
+        src: ./artifacts/index.html 
+        dest: /var/www/html/index.html
+        mode: '0644'
+
+    - name: Ensure NGINX service is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Check if NGINX is serving the page
+      command: curl -s http://localhost
+      register: curl_output
+      retries: 3
+      delay: 5
+
+    - name: Display raw HTML output from curl
+      debug:
+        msg: "{{ curl_output.stdout }}"
