@@ -71,11 +71,6 @@ variable "vm_admin_username" {
   sensitive   = true
 }
 
-variable "vm_admin_password" {
-  type        = string
-  sensitive   = true
-}
-
 variable "client_id" {
   description = "Azure AD Application (Client) ID"
   type        = string
