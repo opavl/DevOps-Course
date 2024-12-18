@@ -54,7 +54,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefixes    = var.allowed_source_prefixes
+    source_address_prefixes      = var.allowed_source_prefixes
     destination_address_prefix = "*"
   }
 }
@@ -123,6 +123,19 @@ resource "azurerm_lb_rule" "hr10" {
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.bap10.id]
 }
 
+# Inbound NAT Rules for SSH
+resource "azurerm_lb_nat_rule" "ssh_nat" {
+  count                          = var.vm_count
+  name                           = "ssh-nat-rule-${count.index + 1}"
+  loadbalancer_id                = azurerm_lb.lb10.id
+  frontend_ip_configuration_name = var.frontend_ip_name
+  protocol                       = "Tcp"
+  frontend_port                  = 5000 + count.index
+  backend_port                   = 22
+  resource_group_name = data.azurerm_resource_group.rg.name
+
+}
+
 # Network Interface
 resource "azurerm_network_interface" "nic10" {
   count               = var.vm_count
@@ -134,7 +147,6 @@ resource "azurerm_network_interface" "nic10" {
     name                          = "internal"
     subnet_id                     = data.azurerm_subnet.subnt2.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pi10.id
   }
 }
 
