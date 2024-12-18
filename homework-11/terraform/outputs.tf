@@ -1,11 +1,11 @@
 output "resource_group_name" {
   description = "Name of the resource group"
-  value       = azurerm_resource_group.rg.name
+  value       = data.azurerm_resource_group.rg.name
 }
 
 output "virtual_network_name" {
   description = "Name of the virtual network"
-  value       = azurerm_virtual_network.vnet.name
+  value       = data.azurerm_virtual_network.vnet.name
 }
 
 output "load_balancer_public_ip" {
@@ -15,7 +15,7 @@ output "load_balancer_public_ip" {
 
 output "vm_public_ips" {
   description = "Public IP of the each VM balancer"
-  value = azurerm_public_ip.pip[*].ip_address
+  value = [for i in range(var.vm_count) : azurerm_public_ip.pi10.id]
 }
 
 output "vm_private_ips" {
