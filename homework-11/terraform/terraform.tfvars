@@ -1,9 +1,9 @@
-resource_group_name             = "Jenkins-Devops-Homeworks"
-location                        = "UK South"
-virtual_network_name            = "Jenkins-WinServer-vnet"
+resource_group_name             = "Jenkins-slaves-Homeworks"
+location                        = "Central US"
+virtual_network_name            = "Jenkins-slaves-vnet"
 vnet_address_space              = ["10.0.11.0/24"]
-subnet_name                     = "jenk-subnet1"
-subnet_address_prefix           = "10.0.11.0/24"
+subnet_name                     = "jenk-subnet2"
+subnet_address_prefix           = "10.0.11.0/25"
 availability_set_name           = "Jenkins-AS"
 platform_fault_domain_count     = 2
 platform_update_domain_count    = 5

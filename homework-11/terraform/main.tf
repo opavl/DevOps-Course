@@ -8,29 +8,32 @@ provider "azurerm" {
 }
 
 # Resource Group
-## referencing as 'data' instead of 'resource' to avoid deletion 
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
 }
 
 # Virtual Network
-data "azurerm_virtual_network" "vnet" {
+resource "azurerm_virtual_network" "vnet" {
   name                = var.virtual_network_name
-  resource_group_name = data.azurerm_resource_group.rg.name
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  address_space       = var.vnet_address_space
 }
 
 # Subnet
-data "azurerm_subnet" "subnt2" {
+resource "azurerm_subnet" "subnet" {
   name                 = var.subnet_name
-  resource_group_name  = data.azurerm_resource_group.rg.name
-  virtual_network_name = data.azurerm_virtual_network.vnet.name
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [var.subnet_address_prefix]
 }
 
 # Security group creation
 resource "azurerm_network_security_group" "nsg" {
   name                = "hw11-nsg"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   # Web traffic rule
   security_rule {
@@ -54,22 +57,22 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefixes      = var.allowed_source_prefixes
+    source_address_prefixes    = var.allowed_source_prefixes
     destination_address_prefix = "*"
   }
 }
 
 # Subnet-Network Security Group Association
 resource "azurerm_subnet_network_security_group_association" "subnet_nsg_association1" {
-  subnet_id                 = data.azurerm_subnet.subnt2.id
+  subnet_id                 = azurerm_subnet.subnet.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 # Availability Set
 resource "azurerm_availability_set" "as10" {
   name                = var.availability_set_name
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   platform_fault_domain_count  = var.platform_fault_domain_count
   platform_update_domain_count = var.platform_update_domain_count
@@ -79,8 +82,8 @@ resource "azurerm_availability_set" "as10" {
 # Public IP for Load Balancer
 resource "azurerm_public_ip" "pi10" {
   name                = var.public_ip_name
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
 }
@@ -88,8 +91,8 @@ resource "azurerm_public_ip" "pi10" {
 # Load Balancer
 resource "azurerm_lb" "lb10" {
   name                = var.load_balancer_name
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
   sku                 = "Standard"
 
   frontend_ip_configuration {
@@ -132,22 +135,28 @@ resource "azurerm_lb_nat_rule" "ssh_nat" {
   protocol                       = "Tcp"
   frontend_port                  = 5000 + count.index
   backend_port                   = 22
-  resource_group_name = data.azurerm_resource_group.rg.name
-
+  resource_group_name            = azurerm_resource_group.rg.name
 }
 
 # Network Interface
 resource "azurerm_network_interface" "nic10" {
   count               = var.vm_count
   name                = "nic-${count.index + 1}"
-  location            = data.azurerm_resource_group.rg.location
-  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = data.azurerm_subnet.subnt2.id
+    subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
   }
+}
+# NIC NAT Rule Association
+resource "azurerm_network_interface_nat_rule_association" "nic_nat" {
+  count                = var.vm_count
+  network_interface_id = azurerm_network_interface.nic10[count.index].id
+  ip_configuration_name = "internal"
+  nat_rule_id           = azurerm_lb_nat_rule.ssh_nat[count.index].id
 }
 
 # NIC Backend Address Pool Association
@@ -162,8 +171,8 @@ resource "azurerm_network_interface_backend_address_pool_association" "nic_bapa1
 resource "azurerm_linux_virtual_machine" "VM" {
   count               = var.vm_count
   name                = "hw-11-vm-${count.index + 1}"
-  resource_group_name = data.azurerm_resource_group.rg.name
-  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   size                = var.vm_size
   admin_username      = var.vm_admin_username
   availability_set_id = azurerm_availability_set.as10.id
@@ -197,8 +206,8 @@ resource "azurerm_linux_virtual_machine" "VM" {
 # SSH Key Generation
 resource "azurerm_ssh_public_key" "example" {
   name                = "hw11-ssh-key-${random_string.example.result}"
-  resource_group_name = data.azurerm_resource_group.rg.name
-  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
   public_key          = tls_private_key.example.public_key_openssh
 }
 
