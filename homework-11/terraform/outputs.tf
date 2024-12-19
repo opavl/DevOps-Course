@@ -44,7 +44,7 @@ output "load_balancer_nat_rules" {
 output "ansible_inventory" {
   value = <<EOT
 [vms]
-${join("\n", [for idx, vm_name in azurerm_linux_virtual_machine.VM[*].name : "${vm_name} ansible_host=${azurerm_public_ip.pi10.ip_address} ansible_port=${azurerm_lb_nat_rule.ssh_nat[idx].frontend_port} ansible_user=adminuser ansible_ssh_private_key_file==~/.ssh/private_key.pem"])}
+${join("\n", [for idx, vm_name in azurerm_linux_virtual_machine.VM[*].name : "${vm_name} ansible_host=${azurerm_public_ip.pi10.ip_address} ansible_port=${azurerm_lb_nat_rule.ssh_nat[idx].frontend_port} ansible_user=adminuser ansible_ssh_private_key_file=~/.ssh/private_key.pem"])}
 EOT
 }
 
