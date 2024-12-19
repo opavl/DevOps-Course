@@ -17,4 +17,4 @@ vm_count                        = 2
 vm_size                         = "Standard_B1s"
 vm_admin_username               = "adminuser"
 
-allowed_source_prefixes         =["46.46.105.0/24", "10.0.64.0/19"]
+allowed_source_prefixes         =["46.46.105.0/24", "10.0.64.0/19", "172.167.212.231/32", "172.167.34.117/32"]
